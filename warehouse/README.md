@@ -45,17 +45,16 @@ Generate a dispatch summary containing:
 ## 4. API Requirements
 
 The application must provide APIs for the following. Fill in the API contract for each row.
-
 | # | Description | Method | Endpoint | Path / Query Params | Request Body | Response Body | Status Codes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Register a package | | | | | | |
-| 2 | Get the details of a specific package | | | | | | |
-| 3 | Partially update package details | | | | | | |
-| 4 | Delete a package (only if it has not been dispatched) | | | | | | |
-| 5 | Search and filter packages (by destination, status, arrival date) | | | | | | |
-| 6 | View dispatch batches (filter by destination, vehicle, dispatch status) | | | | | | |
-| 7 | Get warehouse statistics (dispatch summary) | | | | | | |
-| 8 | Add data manually (e.g. create a dispatch batch and assign packages) | | | | | | |
+|---|---|---|---|---|---|---|---|
+| 1 | Register a package | POST | /packages | – | name, destination, weight, arrival_date | Package details | 201, 400 |
+| 2 | Get a specific package | GET | /packages/{id} | id | – | Package details | 200, 404 |
+| 3 | Update package details | PATCH | /packages/{id} | id | Fields to update | Updated package | 200, 404 |
+| 4 | Delete a package | DELETE | /packages/{id} | id | – | Message | 200, 404, 400 (already dispatched) |
+| 5 | Search packages | GET | /packages | destination, status, arrival_date | – | List of packages | 200 |
+| 6 | View dispatch batches | GET | /dispatches | destination, vehicle, status | – | List of dispatches | 200 |
+| 7 | Warehouse statistics | GET | /stats | – | – | total, pending, dispatched, destination-wise count | 200 |
+| 8 | Create dispatch batch | POST | /dispatches | – | vehicle, destination, package_ids | Dispatch details | 201, 404 |
 
 > **Your task:** Complete the table before you start building. For each API, decide the HTTP method, endpoint path, path and query parameters, request body, response body, and status codes — including error cases (e.g. package not found, deleting a dispatched package).
 

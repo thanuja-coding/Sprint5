@@ -15,3 +15,5 @@ class Package(Base):
     weight = Column(String)
     arrival_date = Column(DateTime, default=datetime.now())
     status = Column(Integer)
+
+    
