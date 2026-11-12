@@ -47,24 +47,3 @@ def delete_package(package_id):
     response = functions.delete_package(id=package_id)
     return {"message":"deleted"}
 
-#E5
-@app.get("/packages")
-def packages(destination=None , status=None , arrival_date=None):
-    return functions.get_all_packages(destination=destination , status=status , arrival_date=arrival_date)
-
-#E6
-@app.get("/dispatches")
-def dispatches(destination=None , vehicle=None , status=None):
-    return functions.get_all_dispatches(destination=destination , vehicle=vehicle , status=status)
-
-#E7
-@app.get("/stats")
-def stats():
-    return functions.get_summary()
-
-#E8
-@app.post("/dispatches")
-def add_dispatch(vehicle , destination , dispatch_date):
-    if functions.get_all_packages(destination=destination , status="pending") == []:
-        raise HTTPException(status_code=404,detail="No pending packages for this destination")
-    return functions.add_dispatch(vehicle=vehicle , destination=destination , dispatch_date=dispatch_date)
