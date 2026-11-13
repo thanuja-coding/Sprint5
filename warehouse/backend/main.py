@@ -46,7 +46,7 @@ def add_package(package: PackageCreate , token = Header(None)):
     return functions.add_package(name=package.name , destination=package.destination , weight=package.weight , arrival_date=str(package.arrival_date) , status=package.status)
 
 @app.get("/packages/{package_id}")
-def package(package_id,token = Header(None)):
+def package(package_id:int,token = Header(None)):
     username=functions.verify_token(token=token,token_type="access")
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -70,6 +70,8 @@ def delete_package(package_id,token = Header(None)):
     username=functions.verify_token(token=token,token_type="access")
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
+    if functions.get_role(token=token) != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can delete packages")
     if functions.get_package(id=package_id) is None:
         raise HTTPException(status_code=404,detail="Package not found")
     if functions.get_package(id=package_id)["status"] == "dispatched":
@@ -80,7 +82,7 @@ def delete_package(package_id,token = Header(None)):
 #E5
 @app.get("/packages")
 def search_packages(destination: str = None, status: str = None, arrival_date: str = None, token = Header(None)):
-    username=functions.verify_token(token=token)
+    username=functions.verify_token(token=token,token_type="access")
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
     result = functions.get_all_packages(destination, status, arrival_date)
@@ -107,8 +109,9 @@ def add_dispatch(dispatch: DispatchCreate , token = Header(None)):
     username = functions.verify_token(token=token,token_type="access")
     if not username:
         raise HTTPException(status_code=401,detail="Invalid token")
+    if functions.get_role(token=token) != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can create dispatches")
     return functions.add_dispatch(vehicle=dispatch.vehicle , destination=dispatch.destination , dispatch_date=str(dispatch.dispatch_date))
-
 
 @app.post("/login")
 def login(username=Body(),password=Body()):
@@ -123,12 +126,13 @@ def refresh(refresh_token=Header(None)):
     if not username:
         raise HTTPException(status_code=401,detail="Invalid or Expired refresh token")
 
-    access_token = functions.create_token(username=username,token_type="access")
+    role = functions.get_role(token=refresh_token)
+    access_token = functions.create_token(username=username,token_type="access",role=role)
     return {"access_token":access_token}
 
 @app.post("/register")
-def register_user(user_name=Body(),password=Body()):
-    if functions.register_user(user_name=user_name,password=password):
+def register_user(user_name=Body(),password=Body(),role=Body("staff")):
+    if functions.register_user(user_name=user_name,password=password,role=role):
         return {"message":"user registered successfully"}
     raise HTTPException(status_code=400,detail="USer already exists")
 

@@ -12,8 +12,6 @@ DB_PATH = "warehouse.db"
 engine = create_engine(f"sqlite:///{DB_PATH}")
 Base = declarative_base()
 
-USERNAME="thanu"
-PASSWORD=123456
 
 ACCESS_TOKEN_EXPIRY = 15
 REFRESH_TOKEN_EXPIRY = 7*24*60
@@ -45,6 +43,7 @@ class User(Base):
     user_id = Column[int](Integer,primary_key=True)
     user_name=Column[str](String)
     password=Column[str](String)
+    role=Column[str](String)
 
 
 
@@ -101,6 +100,7 @@ def update_package(id, destination=None, arrival_date=None, status=None, dispatc
             package.status = status
         if dispatch_id:
             package.dispatch_id = dispatch_id
+            package.status = "dispatched"
         session.commit()
         response={
             "id": package.id,
@@ -176,21 +176,26 @@ def get_all_dispatches(destination=None, vehicle=None, status=None):
 #E7
 def get_summary():
     session = Session(engine)
-
-    summary = session.query(Packages.destination, Packages.status, func.count(Packages.id)).group_by(Packages.destination, Packages.status).all()
-
-    response = []
-
+    total = session.query(Packages).count()
+    pending = session.query(Packages).filter(Packages.status == "pending").count()
+    dispatched = session.query(Packages).filter(Packages.status == "dispatched").count()
+    summary = session.query(Packages.destination, func.count(Packages.id)).group_by(Packages.destination).all()
+    destinations = []
     for item in summary:
-        temp_summary = {
+        temp_destination = {
             "destination": item[0],
-            "status": item[1],
-            "count": item[2]
+            "count": item[1]
         }
-        response.append(temp_summary)
-
+        destinations.append(temp_destination)
+    response = {
+        "total_received": total,
+        "total_pending": pending,
+        "total_dispatched": dispatched,
+        "destination_wise_count": destinations
+    }
     session.close()
     return response
+
 
 
 #E8
@@ -209,6 +214,21 @@ def add_dispatch(vehicle, destination, dispatch_date):
     session.close()
     return response
 
+def get_dispatch(id):
+    session = Session(engine)
+    dispatch = session.query(Dispatches).filter(Dispatches.id == id).first()
+    response = None
+    if dispatch:
+        response = {
+            "id": dispatch.id,
+            "vehicle": dispatch.vehicle,
+            "destination": dispatch.destination,
+            "dispatch_date": dispatch.dispatch_date,
+            "status": dispatch.status
+        }
+    session.close()
+    return response
+
 
 def verify_login(username,password):
     session = Session(engine)
@@ -221,21 +241,23 @@ def verify_login(username,password):
        
     except VerifyMismatchError:
         session.close()
-        return False  
+        return False 
+    role=user.role 
     session.close()
-    access_token = create_token(username=username,token_type="access")  
-    refresh_token= create_token(username=username,token_type="refresh")
+    access_token = create_token(username=username,token_type="access",role=role)  
+    refresh_token= create_token(username=username,token_type="refresh",role=role)
     return {"access_token":access_token,"refresh_token":refresh_token}
 
     
 
-def create_token(username,token_type):
+def create_token(username,token_type,role):
     time = ACCESS_TOKEN_EXPIRY
     if token_type == "refresh":
         time = REFRESH_TOKEN_EXPIRY
     payload={
         "username":username,
         "token_type":token_type,
+        "role":role,
         "exp":datetime.now(timezone.utc)+timedelta(minutes=time)
     }
     token =jwt.encode(payload=payload,key=SECRET_KEY,algorithm=ALGORITHM)
@@ -251,15 +273,21 @@ def verify_token(token,token_type):
         return payload["username"]
     return False
 
+def get_role(token):
+    try:
+        payload = jwt.decode(jwt=token,key=SECRET_KEY,algorithms=[ALGORITHM])
+    except:
+        return None
+    return payload["role"]
 
 #user
-def register_user(user_name:str,password:str):
+def register_user(user_name:str,password:str,role:str):
     session = Session(bind=engine)
     user_exists = session.query(User).filter_by(user_name=user_name).first()
     if user_exists is not None:
         session.close()
         return False
-    session.add(User(user_name=user_name , password=ph.hash(password)))
+    session.add(User(user_name=user_name , password=ph.hash(password),role=role))
     session.commit()
     session.close()
     return True
