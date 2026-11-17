@@ -1,0 +1,6 @@
+fastapi
+unicorn
+sqlalchemy
+PyJWT
+argon2-cffi
+requests
