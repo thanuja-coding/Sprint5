@@ -11,7 +11,7 @@ jobs:
     env:
       # Docker Hub image name in the form <dockerhub-username>/<repo-name>, e.g. malnadhudga/todo-list.
       # The username comes from the DOCKERHUB_USERNAME secret; change "todo-list" to your own repo name.
-      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/todo-list
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/warehouse-backend
       VERSION: v${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +25,8 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: dockerfile
+          context: warehouse/backend
+          file: warehouse/backend/dockerfile
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
@@ -46,4 +46,4 @@ jobs:
             sudo docker rm -f todo-list || true
             sudo docker run -d --name todo-list --restart unless-stopped -p 8000:8000 ${{ env.IMAGE }}:${{ env.VERSION }}
             sudo docker image prune -af
-            sudo docker ps --filter name=todo-list 
+            sudo docker ps --filter name=todo-list
